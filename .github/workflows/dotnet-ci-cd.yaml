@@ -35,19 +35,23 @@ jobs:
       # Only publish when pushing a version tag
       - name: Publish
         if: startsWith(github.ref, 'refs/tags/')
-        run: dotnet publish WpfTreeViewTest/WpfTreeViewTest.csproj -c Release -r win-x64 --self-contained true -o publish
+        run: dotnet publish WpfTreeViewTest/WpfTreeViewTest.csproj -c Release -r win-x64 --self-contained false -o publish
+
+      - name: Zip published output
+        if: startsWith(github.ref, 'refs/tags/')
+        run: Compress-Archive -Path publish\* -DestinationPath WpfTreeView.zip
 
       - name: Upload Build Artifact
         if: startsWith(github.ref, 'refs/tags/')
         uses: actions/upload-artifact@v4
         with:
           name: WpfTreeView   # Adjust for project name
-          path: publish/**
+          path: WpfTreeView.zip
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: publish/**
+          files: WpfTreeView.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
