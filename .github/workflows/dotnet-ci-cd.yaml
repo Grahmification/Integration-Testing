@@ -39,19 +39,21 @@ jobs:
 
       - name: Zip published output
         if: startsWith(github.ref, 'refs/tags/')
-        run: Compress-Archive -Path publish\* -DestinationPath WpfTreeView.zip
+        run: |
+          $tag = "${{ github.ref_name }}"
+          Compress-Archive -Path publish\* -DestinationPath "WpfTreeView-$tag.zip"
 
       - name: Upload Build Artifact
         if: startsWith(github.ref, 'refs/tags/')
         uses: actions/upload-artifact@v4
         with:
           name: WpfTreeView   # Adjust for project name
-          path: WpfTreeView.zip
+          path: WpfTreeView-${{ github.ref_name }}.zip
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: WpfTreeView.zip
+          files: WpfTreeView-${{ github.ref_name }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
