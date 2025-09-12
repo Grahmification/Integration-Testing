@@ -32,7 +32,7 @@ jobs:
       # Only publish when pushing a version tag
       - name: Publish
         if: startsWith(github.ref, 'refs/tags/')
-        run: dotnet publish WpfTreeViewTest/WpfTreeViewTest.csproj.csproj -c Release -r win-x64 --self-contained true -o publish
+        run: dotnet publish WpfTreeViewTest/WpfTreeViewTest.csproj -c Release -r win-x64 --self-contained true -o publish
 
       - name: Upload Build Artifact
         if: startsWith(github.ref, 'refs/tags/')
