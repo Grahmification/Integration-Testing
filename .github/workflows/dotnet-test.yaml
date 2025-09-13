@@ -1,8 +1,17 @@
-# Simple action
-# https://codejack.com/2024/10/github-actions-for-net-cicd-setup-guide/
+#----------------------------------------------------------------------------------------------
+#
+# This github action builds and tests a dot-net application.
+# The action will run when pushing to a development branch.
+#
+#----------------------------------------------------------------------------------------------
 name: .NET CI
 
-on: [push]
+on:
+  push:
+    branches-ignore:
+      - main   # don't run on main
+    tags-ignore:
+      - '**'   # ignore all tags
 
 jobs:
   build:
