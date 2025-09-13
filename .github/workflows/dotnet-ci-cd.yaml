@@ -1,3 +1,20 @@
+#----------------------------------------------------------------------------------------------
+#
+# This github action builds, tests, and optionally publishes a .net application.
+# An application will only be published when pushing a version tag (ex. v1.0.1)
+#
+# This workflow requires the following github secrets:
+# - secrets.WINDOWS_CERT_BASE64 - A certificate .pfx file, encoded in base64 format
+# - secrets.WINDOWS_CERT_PASSWORD - The password for the .pfx file, as specified on file creation
+#
+# The following also must be adjusted:
+# - The dot-net version
+# - The publish project .csproj name
+# - The zip file name
+# - The build artifact name
+#
+#----------------------------------------------------------------------------------------------
+
 name: Build, Test, and Release App
 
 on:
@@ -8,7 +25,7 @@ on:
     branches: [ main ]
 
 permissions:
-  contents: write   # Gives the publish token write access
+  contents: write   # Gives the secrets.GITHUB_TOKEN write access, needed for publishing
 
 jobs:
   build:
@@ -21,7 +38,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'   # Adjust for your project
+          dotnet-version: '8.0.x'  # Adjust version as needed
 
       - name: Restore dependencies
         run: dotnet restore
@@ -32,21 +49,23 @@ jobs:
       - name: Run tests
         run: dotnet test --configuration Release --no-build --verbosity normal
 
-      # Only publish when pushing a version tag
+      # ------------------------------------------
+      # Only publish and upload when pushing a version tag
+      #-------------------------------------------
       - name: Publish
         if: startsWith(github.ref, 'refs/tags/')
-        run: dotnet publish WpfTreeViewTest/WpfTreeViewTest.csproj -c Release -r win-x64 --self-contained false -o publish
+        run: dotnet publish WpfTreeViewTest/WpfTreeViewTest.csproj -c Release -r win-x64 --self-contained false -o publish  # Adjust project as needed
 
-      - name: Decode signing certificate  # Needs to be base64 encoded and uploaded as a secret
+      - name: Decode signing certificate  # Certificate contents must be base 64 encoded and uploaded as a github secret
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           echo "${{ secrets.WINDOWS_CERT_BASE64 }}" > cert.base64
           certutil -decode cert.base64 cert.pfx
         shell: pwsh
 
-      - name: Sign executables
+      - name: Sign executables  # Certificant password must be uploaded as a github secret
         if: startsWith(github.ref, 'refs/tags/')
-        run: |
+        run: | # Dynamically finds the signtool exe, ignoring the arm version
           $certPath = "cert.pfx"
           $password = "${{ secrets.WINDOWS_CERT_PASSWORD }}"
           $signtool = (Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
@@ -68,7 +87,7 @@ jobs:
           }
         shell: pwsh
 
-      - name: Zip published output
+      - name: Zip published output  # Zipped file is named based on tags (version), adjus base name as needed
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           $tag = "${{ github.ref_name }}"
@@ -79,12 +98,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: WpfTreeView   # Adjust for project name
-          path: WpfTreeView-${{ github.ref_name }}.zip
+          path: WpfTreeView-${{ github.ref_name }}.zip  # Must match zipped filename
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: WpfTreeView-${{ github.ref_name }}.zip
+          files: WpfTreeView-${{ github.ref_name }}.zip  # Must match zipped filename
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
